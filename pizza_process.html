@@ -38,266 +38,259 @@
         return gk_fileData[filename] || "";
         }
         </script><!DOCTYPE html>
-  <html>
-  <head>
-    <title>NY-Style Pizza Process Tracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#8B1E3F">
-    <link rel="manifest" href="/pizza-process/manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-      body { font-family: 'Roboto', sans-serif; padding: 20px; background: #2E2E2E; margin: 0; color: #E8D7C1; }
-      h2, h3 { color: #E8D7C1; margin: 15px 0 10px; }
-      label { display: block; margin: 8px 0; font-size: 18px; font-weight: 400; color: #E8D7C1; }
-      input, select, textarea { 
-        width: 150px; padding: 5px; margin-left: 10px; border: 1px solid #4A4A4A; 
-        border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); font-size: 16px; 
-        background: #3C3C3C; color: #E8D7C1; 
+<html>
+<head>
+  <title>NY-Style Pizza Process Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#8B1E3F">
+  <link rel="manifest" href="/pizza-process/manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Roboto', sans-serif; padding: 20px; background: #2E2E2E; margin: 0; color: #E8D7C1; }
+    h2, h3 { color: #E8D7C1; margin: 15px 0 10px; }
+    label { display: block; margin: 8px 0; font-size: 18px; font-weight: 400; color: #E8D7C1; }
+    input, select, textarea { 
+      width: 150px; padding: 5px; margin-left: 10px; border: 1px solid #4A4A4A; 
+      border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); font-size: 16px; 
+      background: #3C3C3C; color: #E8D7C1; 
+    }
+    button { 
+      margin: 15px 10px 0 0; padding: 10px 20px; background: linear-gradient(#8B1E3F, #6B1632); 
+      color: #E8D7C1; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; 
+    }
+    button:hover { background: linear-gradient(#6B1632, #4C1023); }
+    #generateBtn { animation: pulse 2s infinite; }
+    .stage { 
+      margin: 10px 0; padding: 15px; background: #3C2F2F; 
+      border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
+    }
+    .stage h4 { margin: 0 0 10px; color: #F4A261; }
+    .stage p { margin: 5px 0; }
+    .stage textarea { width: 100%; height: 60px; }
+    .completed { opacity: 0.6; text-decoration: line-through; }
+    #schedule { margin-top: 20px; }
+    .section { margin-bottom: 20px; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <h2>NY-Style Pizza Process Tracker</h2>
+  <div class="section">
+    <label>Number of Pies: <input type="number" id="numPies" value="3" min="1"></label>
+    <label>Bake Date: <input type="date" id="bakeDate"></label>
+    <label>Bake Time: <input type="time" id="bakeTime" value="18:00"></label>
+    <label>Timezone: <select id="timezone">
+      <option value="America/New_York">EDT (New York)</option>
+      <option value="America/Chicago">CDT (Chicago)</option>
+      <option value="America/Denver">MDT (Denver)</option>
+      <option value="America/Los_Angeles">PDT (Los Angeles)</option>
+      <option value="UTC">UTC</option>
+    </select></label>
+    <label>Saved Schedules: <select id="scheduleSelect" onchange="loadSchedule()">
+      <option value="">-- Select Schedule --</option>
+    </select></label>
+    <label>Schedule Name: <input type="text" id="scheduleName" placeholder="Enter name"></label>
+  </div>
+  <button id="generateBtn" onclick="generateSchedule()">Generate Schedule</button>
+  <button onclick="saveSchedule()">Save Schedule</button>
+  <button onclick="deleteSchedule()">Delete Schedule</button>
+  <button onclick="requestNotifications()">Enable Notifications</button>
+  <div id="schedule"></div>
+
+  <script>
+    const stages = [
+      { day: 1, offset: -72 * 60, name: 'Biga Prep', action: 'Combine flour, water, yeast. Mix 1-2 min (shaggy, no dry flour). No knead. Place in small airtight container.', goal: 'Combine pre-ferment ingredients.' },
+      { day: 1, offset: -71.5 * 60, name: 'Biga Ferment START', action: 'Seal container. IMMEDIATELY REFRIGERATE.', goal: 'Start slow cold ferment. Expect minimal visible rise.' },
+      { day: 2, offset: -23 * 60, name: 'Temper Biga', action: 'Remove biga from fridge. Let sit COVERED at room temp for 1-2 hours.', goal: 'Warm slightly for easier mixing. Should smell yeasty, maybe slightly puffy.', window: 60 },
+      { day: 2, offset: -22 * 60, name: 'Autolyse', action: 'Mix flour and water. Rest 30 minutes.', goal: 'Hydrate flour for better gluten development.' },
+      { day: 2, offset: -21.5 * 60, name: 'Final Dough Mix', action: 'Break biga into pieces in mixer bowl (hook). Add final flour, yeast, sugar, malt, MSG. Add ~90% water. Mix low 1-2 min (shaggy). Add salt. Mix low, slowly add rest of water. Knead low/medium 5-7 min (smoother). Drizzle oil. Knead 2-4 min (smooth).', goal: 'Develop gluten moderately. Aim for 75-78°F (24-26°C) dough temp.' },
+      { day: 2, offset: -21 * 60, name: 'Short Rest', action: 'Cover bowl, rest at room temp 15-20 min.', goal: 'Relax gluten for easier dividing.' },
+      { day: 2, offset: -20.5 * 60, name: 'Divide & Ball', action: 'Turn dough onto lightly floured/oiled surface. Divide into equal balls using scale. Shape each into a tight ball, sealing seam.', goal: 'Portion dough gently.', dynamic: 'numPies' },
+      { day: 2, offset: -20 * 60, name: 'Ball Ferment START', action: 'Lightly oil individual airtight containers. Place one ball in each, seam-down. Seal containers. IMMEDIATELY REFRIGERATE.', goal: 'Final cold proof in ball form. Expect minimal rise.', dynamic: 'numPies' },
+      { day: 3, offset: 0, name: 'Continue Cold Fermentation', action: 'Balls cold ferment in fridge.', goal: 'Develop flavor and structure.' },
+      { day: 4, offset: -3 * 60, name: 'Temper Dough', action: 'Remove desired dough balls from fridge. Let sit COVERED at room temp 1.5-3 hours.', goal: 'Relax dough, lose chill, get slightly puffy. Should feel cool.', window: 90, dynamic: 'numPies' },
+      { day: 4, offset: -1 * 60, name: 'Preheat Oven', action: 'Place steel/stone in oven. Preheat to MAX temp (500-550°F) for AT LEAST 1 hour.', goal: 'Fully saturate oven/surface with heat.' },
+      { day: 4, offset: 0, name: 'Stretch & Bake', action: 'Gently stretch dough ball (12-14 inch), leaving rim. Place on peel, top quickly. Launch onto hot steel/stone. Bake 6-10 min (rotate if needed) until golden/charred. Cool briefly on rack. Repeat.', goal: 'Bake pizza! Adjust time based on oven.', dynamic: 'numPies' }
+    ];
+
+    window.onload = function() {
+      let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+      let select = document.getElementById('scheduleSelect');
+      for (let name in schedules) {
+        let option = document.createElement('option');
+        option.value = name;
+        option.text = name;
+        select.appendChild(option);
       }
-      button { 
-        margin: 15px 10px 0 0; padding: 10px 20px; background: linear-gradient(#8B1E3F, #6B1632); 
-        color: #E8D7C1; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; 
-      }
-      button:hover { background: linear-gradient(#6B1632, #4C1023); }
-      #generateBtn { animation: pulse 2s infinite; }
-      .stage { 
-        margin: 10px 0; padding: 15px; background: #3C2F2F; 
-        border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
-      }
-      .stage h4 { margin: 0 0 10px; color: #F4A261; }
-      .stage p { margin: 5px 0; }
-      .stage textarea { width: 100%; height: 60px; }
-      .completed { opacity: 0.6; text-decoration: line-through; }
-      #schedule { margin-top: 20px; }
-      .section { margin-bottom: 20px; }
-      @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-    </style>
-  </head>
-  <body>
-    <h2>NY-Style Pizza Process Tracker</h2>
-    <div class="section">
-      <label>Number of Pies: <input type="number" id="numPies" value="3" min="1"></label>
-      <label>Bake Date: <input type="date" id="bakeDate"></label>
-      <label>Bake Time: <input type="time" id="bakeTime" value="18:00"></label>
-      <label>Timezone: <select id="timezone">
-        <option value="America/New_York">EDT (New York)</option>
-        <option value="America/Chicago">CDT (Chicago)</option>
-        <option value="America/Denver">MDT (Denver)</option>
-        <option value="America/Los_Angeles">PDT (Los Angeles)</option>
-        <option value="UTC">UTC</option>
-      </select></label>
-      <label>Saved Schedules: <select id="scheduleSelect" onchange="loadSchedule()">
-        <option value="">-- Select Schedule --</option>
-      </select></label>
-      <label>Schedule Name: <input type="text" id="scheduleName" placeholder="Enter name"></label>
-    </div>
-    <button id="generateBtn" onclick="generateSchedule()">Generate Schedule</button>
-    <button onclick="saveSchedule()">Save Schedule</button>
-    <button onclick="deleteSchedule()">Delete Schedule</button>
-    <button onclick="requestNotifications()">Enable Notifications</button>
-    <div id="schedule"></div>
+      setDefaultDate();
+    };
 
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/pizza-process/pizza-process-sw.js')
-          .then(() => console.log('Service Worker Registered'))
-          .catch(err => console.log('Service Worker Failed', err));
-      }
+    function setDefaultDate() {
+      const now = new Date();
+      now.setDate(now.getDate() + 4);
+      document.getElementById('bakeDate').value = now.toISOString().split('T')[0];
+    }
 
-      const stages = [
-        { day: 1, offset: -72 * 60, name: 'Biga Prep', action: 'Combine flour, water, yeast. Mix 1-2 min (shaggy, no dry flour). No knead. Place in small airtight container.', goal: 'Combine pre-ferment ingredients.' },
-        { day: 1, offset: -71.5 * 60, name: 'Biga Ferment START', action: 'Seal container. IMMEDIATELY REFRIGERATE.', goal: 'Start slow cold ferment. Expect minimal visible rise.' },
-        { day: 2, offset: -23 * 60, name: 'Temper Biga', action: 'Remove biga from fridge. Let sit COVERED at room temp for 1-2 hours.', goal: 'Warm slightly for easier mixing. Should smell yeasty, maybe slightly puffy.', window: 60 },
-        { day: 2, offset: -22 * 60, name: 'Autolyse', action: 'Mix flour and water. Rest 30 minutes.', goal: 'Hydrate flour for better gluten development.' },
-        { day: 2, offset: -21.5 * 60, name: 'Final Dough Mix', action: 'Break biga into pieces in mixer bowl (hook). Add final flour, yeast, sugar, malt, MSG. Add ~90% water. Mix low 1-2 min (shaggy). Add salt. Mix low, slowly add rest of water. Knead low/medium 5-7 min (smoother). Drizzle oil. Knead 2-4 min (smooth).', goal: 'Develop gluten moderately. Aim for 75-78°F (24-26°C) dough temp.' },
-        { day: 2, offset: -21 * 60, name: 'Short Rest', action: 'Cover bowl, rest at room temp 15-20 min.', goal: 'Relax gluten for easier dividing.' },
-        { day: 2, offset: -20.5 * 60, name: 'Divide & Ball', action: 'Turn dough onto lightly floured/oiled surface. Divide into equal balls using scale. Shape each into a tight ball, sealing seam.', goal: 'Portion dough gently.', dynamic: 'numPies' },
-        { day: 2, offset: -20 * 60, name: 'Ball Ferment START', action: 'Lightly oil individual airtight containers. Place one ball in each, seam-down. Seal containers. IMMEDIATELY REFRIGERATE.', goal: 'Final cold proof in ball form. Expect minimal rise.', dynamic: 'numPies' },
-        { day: 3, offset: 0, name: 'Continue Cold Fermentation', action: 'Balls cold ferment in fridge.', goal: 'Develop flavor and structure.' },
-        { day: 4, offset: -3 * 60, name: 'Temper Dough', action: 'Remove desired dough balls from fridge. Let sit COVERED at room temp 1.5-3 hours.', goal: 'Relax dough, lose chill, get slightly puffy. Should feel cool.', window: 90, dynamic: 'numPies' },
-        { day: 4, offset: -1 * 60, name: 'Preheat Oven', action: 'Place steel/stone in oven. Preheat to MAX temp (500-550°F) for AT LEAST 1 hour.', goal: 'Fully saturate oven/surface with heat.' },
-        { day: 4, offset: 0, name: 'Stretch & Bake', action: 'Gently stretch dough ball (12-14 inch), leaving rim. Place on peel, top quickly. Launch onto hot steel/stone. Bake 6-10 min (rotate if needed) until golden/charred. Cool briefly on rack. Repeat.', goal: 'Bake pizza! Adjust time based on oven.', dynamic: 'numPies' }
-      ];
+    function generateSchedule() {
+      const bakeDate = document.getElementById('bakeDate').value;
+      const bakeTime = document.getElementById('bakeTime').value;
+      const timezone = document.getElementById('timezone').value;
+      const numPies = parseInt(document.getElementById('numPies').value);
 
-      window.onload = function() {
-        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-        let select = document.getElementById('scheduleSelect');
-        for (let name in schedules) {
-          let option = document.createElement('option');
-          option.value = name;
-          option.text = name;
-          select.appendChild(option);
-        }
-        setDefaultDate();
-      };
-
-      function setDefaultDate() {
-        const now = new Date();
-        now.setDate(now.getDate() + 4);
-        document.getElementById('bakeDate').value = now.toISOString().split('T')[0];
-      }
-
-      function generateSchedule() {
-        const bakeDate = document.getElementById('bakeDate').value;
-        const bakeTime = document.getElementById('bakeTime').value;
-        const timezone = document.getElementById('timezone').value;
-        const numPies = parseInt(document.getElementById('numPies').value);
-
-        if (!bakeDate || !bakeTime) {
-          alert('Please set a bake date and time!');
-          return;
-        }
-
-        const bakeDateTime = new Date(`${bakeDate}T${bakeTime}:00`);
-        const schedule = stages.map(stage => {
-          const stageTime = new Date(bakeDateTime.getTime() + stage.offset * 60000);
-          const windowEnd = stage.window ? new Date(stageTime.getTime() + stage.window * 60000) : null;
-          const action = stage.dynamic === 'numPies' ? stage.action.replace('equal balls', `${numPies} balls`).replace('desired dough balls', `${numPies} dough balls`).replace('Repeat.', `Repeat for ${numPies} pies.`) : stage.action;
-          return {
-            ...stage,
-            time: stageTime,
-            windowEnd,
-            action,
-            notes: '',
-            completed: false
-          };
-        });
-
-        renderSchedule(schedule);
-        scheduleNotifications(schedule);
+      if (!bakeDate || !bakeTime) {
+        alert('Please set a bake date and time!');
+        return;
       }
 
-      function renderSchedule(schedule) {
-        const scheduleDiv = document.getElementById('schedule');
-        scheduleDiv.innerHTML = '';
-        schedule.forEach((stage, index) => {
-          const stageDiv = document.createElement('div');
-          stageDiv.className = `stage ${stage.completed ? 'completed' : ''}`;
-          const timeStr = stage.time.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
-          const windowStr = stage.windowEnd ? ` to ${stage.windowEnd.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, hour: 'numeric', minute: 'numeric', hour12: true })}` : '';
-          stageDiv.innerHTML = `
-            <h4>Day ${stage.day}: ${stage.name}</h4>
-            <p><b>Time:</b> ${timeStr}${windowStr}</p>
-            <p><b>Action:</b> ${stage.action}</p>
-            <p><b>Goal:</b> ${stage.goal}</p>
-            <p><b>Notes:</b><br><textarea onchange="updateNotes(${index}, this.value)">${stage.notes}</textarea></p>
-            <label><input type="checkbox" ${stage.completed ? 'checked' : ''} onchange="toggleComplete(${index}, this.checked)"> Completed</label>
-          `;
-          scheduleDiv.appendChild(stageDiv);
-        });
-        localStorage.setItem('currentSchedule', JSON.stringify(schedule));
-      }
-
-      function updateNotes(index, notes) {
-        let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
-        schedule[index].notes = notes;
-        localStorage.setItem('currentSchedule', JSON.stringify(schedule));
-      }
-
-      function toggleComplete(index, completed) {
-        let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
-        schedule[index].completed = completed;
-        renderSchedule(schedule);
-      }
-
-      function saveSchedule() {
-        const name = document.getElementById('scheduleName').value.trim();
-        if (!name) {
-          alert('Please enter a schedule name!');
-          return;
-        }
-        const schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
-        if (!schedule.length) {
-          alert('Generate a schedule first!');
-          return;
-        }
-        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-        schedules[name] = {
-          numPies: document.getElementById('numPies').value,
-          bakeDate: document.getElementById('bakeDate').value,
-          bakeTime: document.getElementById('bakeTime').value,
-          timezone: document.getElementById('timezone').value,
-          schedule
+      const bakeDateTime = new Date(`${bakeDate}T${bakeTime}:00`);
+      const schedule = stages.map(stage => {
+        const stageTime = new Date(bakeDateTime.getTime() + stage.offset * 60000);
+        const windowEnd = stage.window ? new Date(stageTime.getTime() + stage.window * 60000) : null;
+        const action = stage.dynamic === 'numPies' ? stage.action.replace('equal balls', `${numPies} balls`).replace('desired dough balls', `${numPies} dough balls`).replace('Repeat.', `Repeat for ${numPies} pies.`) : stage.action;
+        return {
+          ...stage,
+          time: stageTime,
+          windowEnd,
+          action,
+          notes: '',
+          completed: false
         };
+      });
+
+      renderSchedule(schedule);
+      scheduleNotifications(schedule);
+    }
+
+    function renderSchedule(schedule) {
+      const scheduleDiv = document.getElementById('schedule');
+      scheduleDiv.innerHTML = '';
+      schedule.forEach((stage, index) => {
+        const stageDiv = document.createElement('div');
+        stageDiv.className = `stage ${stage.completed ? 'completed' : ''}`;
+        const timeStr = stage.time.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+        const windowStr = stage.windowEnd ? ` to ${stage.windowEnd.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, hour: 'numeric', minute: 'numeric', hour12: true })}` : '';
+        stageDiv.innerHTML = `
+          <h4>Day ${stage.day}: ${stage.name}</h4>
+          <p><b>Time:</b> ${timeStr}${windowStr}</p>
+          <p><b>Action:</b> ${stage.action}</p>
+          <p><b>Goal:</b> ${stage.goal}</p>
+          <p><b>Notes:</b><br><textarea onchange="updateNotes(${index}, this.value)">${stage.notes}</textarea></p>
+          <label><input type="checkbox" ${stage.completed ? 'checked' : ''} onchange="toggleComplete(${index}, this.checked)"> Completed</label>
+        `;
+        scheduleDiv.appendChild(stageDiv);
+      });
+      localStorage.setItem('currentSchedule', JSON.stringify(schedule));
+    }
+
+    function updateNotes(index, notes) {
+      let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+      schedule[index].notes = notes;
+      localStorage.setItem('currentSchedule', JSON.stringify(schedule));
+    }
+
+    function toggleComplete(index, completed) {
+      let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+      schedule[index].completed = completed;
+      renderSchedule(schedule);
+    }
+
+    function saveSchedule() {
+      const name = document.getElementById('scheduleName').value.trim();
+      if (!name) {
+        alert('Please enter a schedule name!');
+        return;
+      }
+      const schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+      if (!schedule.length) {
+        alert('Generate a schedule first!');
+        return;
+      }
+      let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+      schedules[name] = {
+        numPies: document.getElementById('numPies').value,
+        bakeDate: document.getElementById('bakeDate').value,
+        bakeTime: document.getElementById('bakeTime').value,
+        timezone: document.getElementById('timezone').value,
+        schedule
+      };
+      localStorage.setItem('pizzaSchedules', JSON.stringify(schedule));
+
+      let select = document.getElementById('scheduleSelect');
+      if (!select.querySelector(`option[value="${name}"]`)) {
+        let option = document.createElement('option');
+        option.value = name;
+        option.text = name;
+        select.appendChild(option);
+      }
+      select.value = name;
+      alert(`Schedule '${name}' saved!`);
+    }
+
+    function loadSchedule() {
+      const name = document.getElementById('scheduleSelect').value;
+      if (!name) return;
+      let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+      const saved = schedules[name];
+      if (saved) {
+        document.getElementById('numPies').value = saved.numPies || '3';
+        document.getElementById('bakeDate').value = saved.bakeDate;
+        document.getElementById('bakeTime').value = saved.bakeTime;
+        document.getElementById('timezone').value = saved.timezone;
+        localStorage.setItem('currentSchedule', JSON.stringify(saved.schedule));
+        renderSchedule(saved.schedule);
+        scheduleNotifications(saved.schedule);
+      }
+    }
+
+    function deleteSchedule() {
+      const name = document.getElementById('scheduleSelect').value;
+      if (!name) {
+        alert('Please select a schedule to delete!');
+        return;
+      }
+      if (confirm(`Delete schedule '${name}'?`)) {
+        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+        delete schedules[name];
         localStorage.setItem('pizzaSchedules', JSON.stringify(schedules));
 
         let select = document.getElementById('scheduleSelect');
-        if (!select.querySelector(`option[value="${name}"]`)) {
-          let option = document.createElement('option');
-          option.value = name;
-          option.text = name;
-          select.appendChild(option);
-        }
-        select.value = name;
-        alert(`Schedule '${name}' saved!`);
+        let option = select.querySelector(`option[value="${name}"]`);
+        if (option) select.removeChild(option);
+        select.value = '';
+        document.getElementById('scheduleName').value = '';
+        alert(`Schedule '${name}' deleted!`);
       }
+    }
 
-      function loadSchedule() {
-        const name = document.getElementById('scheduleSelect').value;
-        if (!name) return;
-        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-        const saved = schedules[name];
-        if (saved) {
-          document.getElementById('numPies').value = saved.numPies || '3';
-          document.getElementById('bakeDate').value = saved.bakeDate;
-          document.getElementById('bakeTime').value = saved.bakeTime;
-          document.getElementById('timezone').value = saved.timezone;
-          localStorage.setItem('currentSchedule', JSON.stringify(saved.schedule));
-          renderSchedule(saved.schedule);
-          scheduleNotifications(saved.schedule);
-        }
+    function requestNotifications() {
+      if (!('Notification' in window)) {
+        alert('Notifications not supported in this browser.');
+        return;
       }
-
-      function deleteSchedule() {
-        const name = document.getElementById('scheduleSelect').value;
-        if (!name) {
-          alert('Please select a schedule to delete!');
-          return;
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          alert('Notifications enabled! You’ll get reminders for each stage.');
+        } else {
+          alert('Notifications denied. You can enable them in Settings.');
         }
-        if (confirm(`Delete schedule '${name}'?`)) {
-          let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-          delete schedules[name];
-          localStorage.setItem('pizzaSchedules', JSON.stringify(schedules));
+      });
+    }
 
-          let select = document.getElementById('scheduleSelect');
-          let option = select.querySelector(`option[value="${name}"]`);
-          if (option) select.removeChild(option);
-          select.value = '';
-          document.getElementById('scheduleName').value = '';
-          alert(`Schedule '${name}' deleted!`);
+    function scheduleNotifications(schedule) {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      schedule.forEach(stage => {
+        const timeToNotify = stage.time.getTime() - Date.now();
+        if (timeToNotify > 0) {
+          setTimeout(() => {
+            new Notification(`Pizza Process: ${stage.name}`, {
+              body: `Time to ${stage.action.split('.')[0]}. Check your app!`
+            });
+          }, timeToNotify);
         }
-      }
-
-      function requestNotifications() {
-        if (!('Notification' in window)) {
-          alert('Notifications not supported in this browser.');
-          return;
-        }
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            alert('Notifications enabled! You’ll get reminders for each stage.');
-          } else {
-            alert('Notifications denied. You can enable them in Settings.');
-          }
-        });
-      }
-
-      function scheduleNotifications(schedule) {
-        if (!('Notification' in window) || Notification.permission !== 'granted') return;
-        schedule.forEach(stage => {
-          const timeToNotify = stage.time.getTime() - Date.now();
-          if (timeToNotify > 0) {
-            setTimeout(() => {
-              new Notification(`Pizza Process: ${stage.name}`, {
-                body: `Time to ${stage.action.split('.')[0]}. Check your app!`,
-                icon: '/pizza-process/pizza-icon.png'
-              });
-            }, timeToNotify);
-          }
-        });
-      }
-    </script>
-  </body>
-  </html>
+      });
+    }
+  </script>
+</body>
+</html>
