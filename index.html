@@ -215,7 +215,7 @@
         timezone: document.getElementById('timezone').value,
         schedule
       };
-      localStorage.setItem('pizzaSchedules', JSON.stringify(schedule));
+      localStorage.setItem('pizzaSchedules', JSON.stringify(schedules));
 
       let select = document.getElementById('scheduleSelect');
       if (!select.querySelector(`option[value="${name}"]`)) {

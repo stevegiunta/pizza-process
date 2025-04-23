@@ -2,7 +2,7 @@
   "name": "NY-Style Pizza Process Tracker",
   "short_name": "Pizza Process",
   "description": "Track your NY-style pizza dough process with a dynamic schedule.",
-  "start_url": "/pizza-process/pizza_process.html",
+  "start_url": "/pizza-process/index.html",
   "display": "standalone",
   "background_color": "#2E2E2E",
   "theme_color": "#8B1E3F",
