@@ -6,5 +6,16 @@
   "display": "standalone",
   "background_color": "#2E2E2E",
   "theme_color": "#8B1E3F",
-  "icons": []
+  "icons": [
+    {
+      "src": "/pizza-process/pizza-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pizza-process/pizza-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
