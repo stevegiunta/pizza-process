@@ -101,18 +101,18 @@
 
   <script>
     const stages = [
-      { day: 1, offset: -72 * 60, name: 'Biga Prep', action: 'Combine flour, water, yeast. Mix 1-2 min (shaggy, no dry flour). No knead. Place in small airtight container.', goal: 'Combine pre-ferment ingredients.' },
-      { day: 1, offset: -71.5 * 60, name: 'Biga Ferment START', action: 'Seal container. IMMEDIATELY REFRIGERATE.', goal: 'Start slow cold ferment. Expect minimal visible rise.' },
-      { day: 2, offset: -23 * 60, name: 'Temper Biga', action: 'Remove biga from fridge. Let sit COVERED at room temp for 1-2 hours.', goal: 'Warm slightly for easier mixing. Should smell yeasty, maybe slightly puffy.', window: 60 },
-      { day: 2, offset: -22 * 60, name: 'Autolyse', action: 'Mix flour and water. Rest 30 minutes.', goal: 'Hydrate flour for better gluten development.' },
-      { day: 2, offset: -21.5 * 60, name: 'Final Dough Mix', action: 'Break biga into pieces in mixer bowl (hook). Add final flour, yeast, sugar, malt, MSG. Add ~90% water. Mix low 1-2 min (shaggy). Add salt. Mix low, slowly add rest of water. Knead low/medium 5-7 min (smoother). Drizzle oil. Knead 2-4 min (smooth).', goal: 'Develop gluten moderately. Aim for 75-78°F (24-26°C) dough temp.' },
-      { day: 2, offset: -21 * 60, name: 'Short Rest', action: 'Cover bowl, rest at room temp 15-20 min.', goal: 'Relax gluten for easier dividing.' },
-      { day: 2, offset: -20.5 * 60, name: 'Divide & Ball', action: 'Turn dough onto lightly floured/oiled surface. Divide into equal balls using scale. Shape each into a tight ball, sealing seam.', goal: 'Portion dough gently.', dynamic: 'numPies' },
-      { day: 2, offset: -20 * 60, name: 'Ball Ferment START', action: 'Lightly oil individual airtight containers. Place one ball in each, seam-down. Seal containers. IMMEDIATELY REFRIGERATE.', goal: 'Final cold proof in ball form. Expect minimal rise.', dynamic: 'numPies' },
-      { day: 3, offset: 0, name: 'Continue Cold Fermentation', action: 'Balls cold ferment in fridge.', goal: 'Develop flavor and structure.' },
-      { day: 4, offset: -3 * 60, name: 'Temper Dough', action: 'Remove desired dough balls from fridge. Let sit COVERED at room temp 1.5-3 hours.', goal: 'Relax dough, lose chill, get slightly puffy. Should feel cool.', window: 90, dynamic: 'numPies' },
-      { day: 4, offset: -1 * 60, name: 'Preheat Oven', action: 'Place steel/stone in oven. Preheat to MAX temp (500-550°F) for AT LEAST 1 hour.', goal: 'Fully saturate oven/surface with heat.' },
-      { day: 4, offset: 0, name: 'Stretch & Bake', action: 'Gently stretch dough ball (12-14 inch), leaving rim. Place on peel, top quickly. Launch onto hot steel/stone. Bake 6-10 min (rotate if needed) until golden/charred. Cool briefly on rack. Repeat.', goal: 'Bake pizza! Adjust time based on oven.', dynamic: 'numPies' }
+      { offset: -72 * 60, name: 'Biga Prep', action: 'Combine flour, water, yeast. Mix 1-2 min (shaggy, no dry flour). No knead. Place in small airtight container.', goal: 'Combine pre-ferment ingredients.' },
+      { offset: -71.5 * 60, name: 'Biga Ferment START', action: 'Seal container. IMMEDIATELY REFRIGERATE.', goal: 'Start slow cold ferment. Expect minimal visible rise.' },
+      { offset: -23 * 60, name: 'Temper Biga', action: 'Remove biga from fridge. Let sit COVERED at room temp for 1-2 hours.', goal: 'Warm slightly for easier mixing. Should smell yeasty, maybe slightly puffy.', window: 60 },
+      { offset: -22 * 60, name: 'Autolyse', action: 'Mix flour and water. Rest 30 minutes.', goal: 'Hydrate flour for better gluten development.' },
+      { offset: -21.5 * 60, name: 'Final Dough Mix', action: 'Break biga into pieces in mixer bowl (hook). Add final flour, yeast, sugar, malt, MSG. Add ~90% water. Mix low 1-2 min (shaggy). Add salt. Mix low, slowly add rest of water. Knead low/medium 5-7 min (smoother). Drizzle oil. Knead 2-4 min (smooth).', goal: 'Develop gluten moderately. Aim for 75-78°F (24-26°C) dough temp.' },
+      { offset: -21 * 60, name: 'Short Rest', action: 'Cover bowl, rest at room temp 15-20 min.', goal: 'Relax gluten for easier dividing.' },
+      { offset: -20.5 * 60, name: 'Divide & Ball', action: 'Turn dough onto lightly floured/oiled surface. Divide into equal balls using scale. Shape each into a tight ball, sealing seam.', goal: 'Portion dough gently.', dynamic: 'numPies' },
+      { offset: -20 * 60, name: 'Ball Ferment START', action: 'Lightly oil individual airtight containers. Place one ball in each, seam-down. Seal containers. IMMEDIATELY REFRIGERATE.', goal: 'Final cold proof in ball form. Expect minimal rise.', dynamic: 'numPies' },
+      { offset: 0, name: 'Continue Cold Fermentation', action: 'Balls cold ferment in fridge.', goal: 'Develop flavor and structure.' },
+      { offset: -3 * 60, name: 'Temper Dough', action: 'Remove desired dough balls from fridge. Let sit COVERED at room temp 1.5-3 hours.', goal: 'Relax dough, lose chill, get slightly puffy. Should feel cool.', window: 90, dynamic: 'numPies' },
+      { offset: -1 * 60, name: 'Preheat Oven', action: 'Place steel/stone in oven. Preheat to MAX temp (500-550°F) for AT LEAST 1 hour.', goal: 'Fully saturate oven/surface with heat.' },
+      { offset: 0, name: 'Stretch & Bake', action: 'Gently stretch dough ball (12-14 inch), leaving rim. Place on peel, top quickly. Launch onto hot steel/stone. Bake 6-10 min (rotate if needed) until golden/charred. Cool briefly on rack. Repeat.', goal: 'Bake pizza! Adjust time based on oven.', dynamic: 'numPies' }
     ];
 
     window.onload = function() {
@@ -145,12 +145,20 @@
       }
 
       const bakeDateTime = new Date(`${bakeDate}T${bakeTime}:00`);
+      const bakeDateOnly = new Date(bakeDateTime);
+      bakeDateOnly.setHours(0, 0, 0, 0);
+
       const schedule = stages.map(stage => {
         const stageTime = new Date(bakeDateTime.getTime() + stage.offset * 60000);
+        const stageDateOnly = new Date(stageTime);
+        stageDateOnly.setHours(0, 0, 0, 0);
+        const dayDiff = Math.ceil((bakeDateOnly - stageDateOnly) / (1000 * 60 * 60 * 24));
+        const day = dayDiff + 1; // Day 1 is 3 days before bake, Day 2 is 2 days before, etc.
         const windowEnd = stage.window ? new Date(stageTime.getTime() + stage.window * 60000) : null;
         const action = stage.dynamic === 'numPies' ? stage.action.replace('equal balls', `${numPies} balls`).replace('desired dough balls', `${numPies} dough balls`).replace('Repeat.', `Repeat for ${numPies} pies.`) : stage.action;
         return {
           ...stage,
+          day,
           time: stageTime,
           windowEnd,
           action,
