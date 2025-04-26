@@ -169,8 +169,9 @@
       schedule.forEach((stage, index) => {
         const stageDiv = document.createElement('div');
         stageDiv.className = `stage ${stage.completed ? 'completed' : ''}`;
-        const timeStr = stage.time.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
-        const windowStr = stage.windowEnd ? ` to ${stage.windowEnd.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, hour: 'numeric', minute: 'numeric', hour12: true })}` : '';
+        const time = stage.time instanceof Date ? stage.time : new Date(stage.time);
+        const timeStr = time.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+        const windowStr = stage.windowEnd ? ` to ${(stage.windowEnd instanceof Date ? stage.windowEnd : new Date(stage.windowEnd)).toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, hour: 'numeric', minute: 'numeric', hour12: true })}` : '';
         stageDiv.innerHTML = `
           <h4>Day ${stage.day}: ${stage.name}</h4>
           <p><b>Time:</b> ${timeStr}${windowStr}</p>
@@ -186,12 +187,22 @@
 
     function updateNotes(index, notes) {
       let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+      schedule = schedule.map(stage => ({
+        ...stage,
+        time: new Date(stage.time),
+        windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
+      }));
       schedule[index].notes = notes;
       localStorage.setItem('currentSchedule', JSON.stringify(schedule));
     }
 
     function toggleComplete(index, completed) {
       let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+      schedule = schedule.map(stage => ({
+        ...stage,
+        time: new Date(stage.time),
+        windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
+      }));
       schedule[index].completed = completed;
       renderSchedule(schedule);
     }
@@ -238,9 +249,14 @@
         document.getElementById('bakeDate').value = saved.bakeDate;
         document.getElementById('bakeTime').value = saved.bakeTime;
         document.getElementById('timezone').value = saved.timezone;
-        localStorage.setItem('currentSchedule', JSON.stringify(saved.schedule));
-        renderSchedule(saved.schedule);
-        scheduleNotifications(saved.schedule);
+        const schedule = saved.schedule.map(stage => ({
+          ...stage,
+          time: new Date(stage.time),
+          windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
+        }));
+        localStorage.setItem('currentSchedule', JSON.stringify(schedule));
+        renderSchedule(schedule);
+        scheduleNotifications(schedule);
       }
     }
 
@@ -281,7 +297,7 @@
     function scheduleNotifications(schedule) {
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       schedule.forEach(stage => {
-        const timeToNotify = stage.time.getTime() - Date.now();
+        const timeToNotify = (stage.time instanceof Date ? stage.time : new Date(stage.time)).getTime() - Date.now();
         if (timeToNotify > 0) {
           setTimeout(() => {
             new Notification(`Pizza Process: ${stage.name}`, {
