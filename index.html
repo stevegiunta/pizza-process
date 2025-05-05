@@ -88,7 +88,7 @@
       <option value="America/Los_Angeles">PDT (Los Angeles)</option>
       <option value="UTC">UTC</option>
     </select></label>
-    <label>Saved Schedules: <select id="scheduleSelect" onchange="loadSchedule()">
+    <label>Saved Schedules: <select id="scheduleSelect">
       <option value="">-- Select Schedule --</option>
     </select></label>
     <label>Schedule Name: <input type="text" id="scheduleName" placeholder="Enter name"></label>
@@ -102,7 +102,7 @@
   <script>
     const stages = [
       { offset: -72 * 60, name: 'Biga Prep', action: 'Combine flour, water, yeast. Mix 1-2 min (shaggy, no dry flour). No knead. Place in small airtight container.', goal: 'Combine pre-ferment ingredients.' },
-      { offset: -71.5 * 60, name: 'Biga Ferment START', action: 'Seal container. IMMEDIATELY REFRIGERATE.', goal: 'Start slow cold ferment. Expect minimal visible rise.' },
+      { offset: -70 * 60, name: 'Biga Ferment START', action: 'After mixing, seal container. Rest at room temp 1-2 hours, then refrigerate.', goal: 'Allow yeast activation at room temp, then start slow cold ferment. Expect minimal visible rise.', window: 60 },
       { offset: -48 * 60, name: 'Temper Biga', action: 'Remove biga from fridge. Let sit COVERED at room temp for 1-2 hours.', goal: 'Warm slightly for easier mixing. Should smell yeasty, maybe slightly puffy.', window: 60 },
       { offset: -47 * 60, name: 'Autolyse', action: 'Mix flour with ~90% of total water (hold back ~10%) until no dry flour remains, forming a shaggy, uniform dough. Rest 30 minutes.', goal: 'Hydrate flour for better gluten development.' },
       { offset: -46.5 * 60, name: 'Final Dough Mix', action: 'In mixer bowl (hook), combine autolysed flour-water mix with biga (broken into pieces), yeast, sugar, malt, MSG. Add reserved water (~10%). Mix low 1-2 min (shaggy). Add salt. Mix low, adjust with any remaining water. Knead low/medium 5-7 min (smoother). Drizzle oil. Knead 2-4 min (smooth).', goal: 'Develop gluten moderately. Aim for 75-78°F (24-26°C) dough temp.' },
@@ -116,15 +116,20 @@
     ];
 
     window.onload = function() {
-      let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-      let select = document.getElementById('scheduleSelect');
-      for (let name in schedules) {
-        let option = document.createElement('option');
-        option.value = name;
-        option.text = name;
-        select.appendChild(option);
+      try {
+        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+        let select = document.getElementById('scheduleSelect');
+        for (let name in schedules) {
+          let option = document.createElement('option');
+          option.value = name;
+          option.text = name;
+          select.appendChild(option);
+        }
+        setDefaultDate();
+      } catch (e) {
+        console.error('Error loading schedules:', e);
+        alert('Failed to load saved schedules. Please try again.');
       }
-      setDefaultDate();
     };
 
     function setDefaultDate() {
@@ -134,188 +139,258 @@
     }
 
     function generateSchedule() {
-      const bakeDate = document.getElementById('bakeDate').value;
-      const bakeTime = document.getElementById('bakeTime').value;
-      const timezone = document.getElementById('timezone').value;
-      const numPies = parseInt(document.getElementById('numPies').value);
+      try {
+        const bakeDate = document.getElementById('bakeDate').value;
+        const bakeTime = document.getElementById('bakeTime').value;
+        const timezone = document.getElementById('timezone').value;
+        const numPies = parseInt(document.getElementById('numPies').value) || 3;
 
-      if (!bakeDate || !bakeTime) {
-        alert('Please set a bake date and time!');
-        return;
+        if (!bakeDate || !bakeTime) {
+          alert('Please set a bake date and time!');
+          return;
+        }
+
+        const bakeDateTime = new Date(`${bakeDate}T${bakeTime}:00`);
+        if (isNaN(bakeDateTime.getTime())) {
+          alert('Invalid date or time format!');
+          return;
+        }
+
+        const firstStageDate = new Date(bakeDateTime.getTime() + stages[0].offset * 60000);
+        const firstStageDateOnly = new Date(firstStageDate);
+        firstStageDateOnly.setHours(0, 0, 0, 0);
+
+        const schedule = stages.map(stage => {
+          const stageTime = new Date(bakeDateTime.getTime() + stage.offset * 60000);
+          const stageDateOnly = new Date(stageTime);
+          stageDateOnly.setHours(0, 0, 0, 0);
+          const dayDiff = Math.floor((stageDateOnly - firstStageDateOnly) / (1000 * 60 * 60 * 24));
+          const day = dayDiff + 1;
+          const windowEnd = stage.window ? new Date(stageTime.getTime() + stage.window * 60000) : null;
+          const action = stage.dynamic === 'numPies' ? 
+            stage.action.replace('equal balls', `${numPies} balls`)
+                        .replace('desired dough balls', `${numPies} dough balls`)
+                        .replace('Repeat.', `Repeat for ${numPies} pies.`) : 
+            stage.action;
+          return {
+            ...stage,
+            day,
+            time: stageTime,
+            windowEnd,
+            action,
+            notes: '',
+            completed: false
+          };
+        });
+
+        renderSchedule(schedule);
+        scheduleNotifications(schedule);
+      } catch (e) {
+        console.error('Error generating schedule:', e);
+        alert('Failed to generate schedule. Please check inputs and try again.');
       }
-
-      const bakeDateTime = new Date(`${bakeDate}T${bakeTime}:00`);
-      const firstStageDate = new Date(bakeDateTime.getTime() + stages[0].offset * 60000);
-      const firstStageDateOnly = new Date(firstStageDate);
-      firstStageDateOnly.setHours(0, 0, 0, 0);
-
-      const schedule = stages.map(stage => {
-        const stageTime = new Date(bakeDateTime.getTime() + stage.offset * 60000);
-        const stageDateOnly = new Date(stageTime);
-        stageDateOnly.setHours(0, 0, 0, 0);
-        const dayDiff = Math.floor((stageDateOnly - firstStageDateOnly) / (1000 * 60 * 60 * 24));
-        const day = dayDiff + 1;
-        const windowEnd = stage.window ? new Date(stageTime.getTime() + stage.window * 60000) : null;
-        const action = stage.dynamic === 'numPies' ? stage.action.replace('equal balls', `${numPies} balls`).replace('desired dough balls', `${numPies} dough balls`).replace('Repeat.', `Repeat for ${numPies} pies.`) : stage.action;
-        return {
-          ...stage,
-          day,
-          time: stageTime,
-          windowEnd,
-          action,
-          notes: '',
-          completed: false
-        };
-      });
-
-      renderSchedule(schedule);
-      scheduleNotifications(schedule);
     }
 
     function renderSchedule(schedule) {
-      const scheduleDiv = document.getElementById('schedule');
-      scheduleDiv.innerHTML = '';
-      schedule.forEach((stage, index) => {
-        const stageDiv = document.createElement('div');
-        stageDiv.className = `stage ${stage.completed ? 'completed' : ''}`;
-        const time = stage.time instanceof Date ? stage.time : new Date(stage.time);
-        const timeStr = time.toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
-        const windowStr = stage.windowEnd ? ` to ${(stage.windowEnd instanceof Date ? stage.windowEnd : new Date(stage.windowEnd)).toLocaleString('en-US', { timeZone: document.getElementById('timezone').value, hour: 'numeric', minute: 'numeric', hour12: true })}` : '';
-        stageDiv.innerHTML = `
-          <h4>Day ${stage.day}: ${stage.name}</h4>
-          <p><b>Time:</b> ${timeStr}${windowStr}</p>
-          <p><b>Action:</b> ${stage.action}</p>
-          <p><b>Goal:</b> ${stage.goal}</p>
-          <p><b>Notes:</b><br><textarea onchange="updateNotes(${index}, this.value)">${stage.notes}</textarea></p>
-          <label><input type="checkbox" ${stage.completed ? 'checked' : ''} onchange="toggleComplete(${index}, this.checked)"> Completed</label>
-        `;
-        scheduleDiv.appendChild(stageDiv);
-      });
-      localStorage.setItem('currentSchedule', JSON.stringify(schedule));
+      try {
+        const scheduleDiv = document.getElementById('schedule');
+        scheduleDiv.innerHTML = '';
+        schedule.forEach((stage, index) => {
+          const stageDiv = document.createElement('div');
+          stageDiv.className = `stage ${stage.completed ? 'completed' : ''}`;
+          const time = stage.time instanceof Date ? stage.time : new Date(stage.time);
+          const timeStr = time.toLocaleString('en-US', { 
+            timeZone: document.getElementById('timezone').value, 
+            weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true 
+          });
+          const windowStr = stage.windowEnd ? ` to ${(stage.windowEnd instanceof Date ? stage.windowEnd : new Date(stage.windowEnd)).toLocaleString('en-US', { 
+            timeZone: document.getElementById('timezone').value, hour: 'numeric', minute: 'numeric', hour12: true 
+          })}` : '';
+          stageDiv.innerHTML = `
+            <h4>Day ${stage.day}: ${stage.name}</h4>
+            <p><b>Time:</b> ${timeStr}${windowStr}</p>
+            <p><b>Action:</b> ${stage.action}</p>
+            <p><b>Goal:</b> ${stage.goal}</p>
+            <p><b>Notes:</b><br><textarea data-index="${index}">${stage.notes}</textarea></p>
+            <label><input type="checkbox" data-index="${index}" ${stage.completed ? 'checked' : ''}> Completed</label>
+          `;
+          scheduleDiv.appendChild(stageDiv);
+        });
+
+        // Add event listeners for textareas and checkboxes
+        document.querySelectorAll('textarea[data-index]').forEach(textarea => {
+          textarea.addEventListener('change', (e) => updateNotes(parseInt(e.target.dataset.index), e.target.value));
+        });
+        document.querySelectorAll('input[type="checkbox"][data-index]').forEach(checkbox => {
+          checkbox.addEventListener('change', (e) => toggleComplete(parseInt(e.target.dataset.index), e.target.checked));
+        });
+
+        localStorage.setItem('currentSchedule', JSON.stringify(schedule));
+      } catch (e) {
+        console.error('Error rendering schedule:', e);
+        alert('Failed to render schedule. Please try again.');
+      }
     }
 
     function updateNotes(index, notes) {
-      let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
-      schedule = schedule.map(stage => ({
-        ...stage,
-        time: new Date(stage.time),
-        windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
-      }));
-      schedule[index].notes = notes;
-      localStorage.setItem('currentSchedule', JSON.stringify(schedule));
-    }
-
-    function toggleComplete(index, completed) {
-      let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
-      schedule = schedule.map(stage => ({
-        ...stage,
-        time: new Date(stage.time),
-        windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
-      }));
-      schedule[index].completed = completed;
-      renderSchedule(schedule);
-    }
-
-    function saveSchedule() {
-      const name = document.getElementById('scheduleName').value.trim();
-      if (!name) {
-        alert('Please enter a schedule name!');
-        return;
-      }
-      const schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
-      if (!schedule.length) {
-        alert('Generate a schedule first!');
-        return;
-      }
-      let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-      schedules[name] = {
-        numPies: document.getElementById('numPies').value,
-        bakeDate: document.getElementById('bakeDate').value,
-        bakeTime: document.getElementById('bakeTime').value,
-        timezone: document.getElementById('timezone').value,
-        schedule
-      };
-      localStorage.setItem('pizzaSchedules', JSON.stringify(schedules));
-
-      let select = document.getElementById('scheduleSelect');
-      if (!select.querySelector(`option[value="${name}"]`)) {
-        let option = document.createElement('option');
-        option.value = name;
-        option.text = name;
-        select.appendChild(option);
-      }
-      select.value = name;
-      alert(`Schedule '${name}' saved!`);
-    }
-
-    function loadSchedule() {
-      const name = document.getElementById('scheduleSelect').value;
-      if (!name) return;
-      let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-      const saved = schedules[name];
-      if (saved) {
-        document.getElementById('numPies').value = saved.numPies || '3';
-        document.getElementById('bakeDate').value = saved.bakeDate;
-        document.getElementById('bakeTime').value = saved.bakeTime;
-        document.getElementById('timezone').value = saved.timezone;
-        const schedule = saved.schedule.map(stage => ({
+      try {
+        let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+        schedule = schedule.map(stage => ({
           ...stage,
           time: new Date(stage.time),
           windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
         }));
+        schedule[index].notes = notes;
         localStorage.setItem('currentSchedule', JSON.stringify(schedule));
+      } catch (e) {
+        console.error('Error updating notes:', e);
+        alert('Failed to save notes. Please try again.');
+      }
+    }
+
+    function toggleComplete(index, completed) {
+      try {
+        let schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+        schedule = schedule.map(stage => ({
+          ...stage,
+          time: new Date(stage.time),
+          windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
+        }));
+        schedule[index].completed = completed;
         renderSchedule(schedule);
-        scheduleNotifications(schedule);
+      } catch (e) {
+        console.error('Error toggling complete:', e);
+        alert('Failed to update stage status. Please try again.');
+      }
+    }
+
+    function saveSchedule() {
+      try {
+        const name = document.getElementById('scheduleName').value.trim();
+        if (!name) {
+          alert('Please enter a schedule name!');
+          return;
+        }
+        const schedule = JSON.parse(localStorage.getItem('currentSchedule')) || [];
+        if (!schedule.length) {
+          alert('Generate a schedule first!');
+          return;
+        }
+        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+        schedules[name] = {
+          numPies: document.getElementById('numPies').value,
+          bakeDate: document.getElementById('bakeDate').value,
+          bakeTime: document.getElementById('bakeTime').value,
+          timezone: document.getElementById('timezone').value,
+          schedule
+        };
+        localStorage.setItem('pizzaSchedules', JSON.stringify(schedules));
+
+        let select = document.getElementById('scheduleSelect');
+        if (!select.querySelector(`option[value="${name}"]`)) {
+          let option = document.createElement('option');
+          option.value = name;
+          option.text = name;
+          select.appendChild(option);
+        }
+        select.value = name;
+        alert(`Schedule '${name}' saved!`);
+      } catch (e) {
+        console.error('Error saving schedule:', e);
+        alert('Failed to save schedule. Please try again.');
+      }
+    }
+
+    function loadSchedule() {
+      try {
+        const name = document.getElementById('scheduleSelect').value;
+        if (!name) return;
+        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+        const saved = schedules[name];
+        if (saved) {
+          document.getElementById('numPies').value = saved.numPies || '3';
+          document.getElementById('bakeDate').value = saved.bakeDate;
+          document.getElementById('bakeTime').value = saved.bakeTime;
+          document.getElementById('timezone').value = saved.timezone;
+          const schedule = saved.schedule.map(stage => ({
+            ...stage,
+            time: new Date(stage.time),
+            windowEnd: stage.windowEnd ? new Date(stage.windowEnd) : null
+          }));
+          localStorage.setItem('currentSchedule', JSON.stringify(schedule));
+          renderSchedule(schedule);
+          scheduleNotifications(schedule);
+        }
+      } catch (e) {
+        console.error('Error loading schedule:', e);
+        alert('Failed to load schedule. Please try again.');
       }
     }
 
     function deleteSchedule() {
-      const name = document.getElementById('scheduleSelect').value;
-      if (!name) {
-        alert('Please select a schedule to delete!');
-        return;
-      }
-      if (confirm(`Delete schedule '${name}'?`)) {
-        let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
-        delete schedules[name];
-        localStorage.setItem('pizzaSchedules', JSON.stringify(schedules));
+      try {
+        const name = document.getElementById('scheduleSelect').value;
+        if (!name) {
+          alert('Please select a schedule to delete!');
+          return;
+        }
+        if (confirm(`Delete schedule '${name}'?`)) {
+          let schedules = JSON.parse(localStorage.getItem('pizzaSchedules')) || {};
+          delete schedules[name];
+          localStorage.setItem('pizzaSchedules', JSON.stringify(schedules));
 
-        let select = document.getElementById('scheduleSelect');
-        let option = select.querySelector(`option[value="${name}"]`);
-        if (option) select.removeChild(option);
-        select.value = '';
-        document.getElementById('scheduleName').value = '';
-        alert(`Schedule '${name}' deleted!`);
+          let select = document.getElementById('scheduleSelect');
+          let option = select.querySelector(`option[value="${name}"]`);
+          if (option) select.removeChild(option);
+          select.value = '';
+          document.getElementById('scheduleName').value = '';
+          alert(`Schedule '${name}' deleted!`);
+        }
+      } catch (e) {
+        console.error('Error deleting schedule:', e);
+        alert('Failed to delete schedule. Please try again.');
       }
     }
 
     function requestNotifications() {
-      if (!('Notification' in window)) {
-        alert('Notifications not supported in this browser.');
-        return;
-      }
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          alert('Notifications enabled! You’ll get reminders for each stage.');
-        } else {
-          alert('Notifications denied. You can enable them in Settings.');
+      try {
+        if (!('Notification' in window)) {
+          alert('Notifications not supported in this browser.');
+          return;
         }
-      });
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            alert('Notifications enabled! You’ll get reminders for each stage.');
+          } else {
+            alert('Notifications denied. You can enable them in Settings.');
+          }
+        });
+      } catch (e) {
+        console.error('Error requesting notifications:', e);
+        alert('Failed to enable notifications. Please try again.');
+      }
     }
 
     function scheduleNotifications(schedule) {
-      if (!('Notification' in window) || Notification.permission !== 'granted') return;
-      schedule.forEach(stage => {
-        const timeToNotify = (stage.time instanceof Date ? stage.time : new Date(stage.time)).getTime() - Date.now();
-        if (timeToNotify > 0) {
-          setTimeout(() => {
-            new Notification(`Pizza Process: ${stage.name}`, {
-              body: `Time to ${stage.action.split('.')[0]}. Check your app!`
-            });
-          }, timeToNotify);
-        }
-      });
+      try {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        schedule.forEach(stage => {
+          const timeToNotify = (stage.time instanceof Date ? stage.time : new Date(stage.time)).getTime() - Date.now();
+          if (timeToNotify > 0) {
+            setTimeout(() => {
+              new Notification(`Pizza Process: ${stage.name}`, {
+                body: `Time to ${stage.action.split('.')[0]}. Check your app!`
+              });
+            }, timeToNotify);
+          }
+        });
+      } catch (e) {
+        console.error('Error scheduling notifications:', e);
+      }
     }
+
+    // Add event listener for schedule select
+    document.getElementById('scheduleSelect').addEventListener('change', loadSchedule);
   </script>
 </body>
 </html>
